@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housing Price Prediction</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+    }
+
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+    }
+
+    .header p {
+        font-size: 1.1em;
+        opacity: 0.9;
+    }
+
+    .content {
+        padding: 40px;
+    }
+
+    .step {
+        display: none;
+        animation: fadeIn 0.5s;
+    }
+
+    .step.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 40px;
+        padding: 0 20px;
+    }
+
+    .step-item {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .step-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background: #e0e0e0;
+        z-index: -1;
+    }
+
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        color: #999;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+
+    .step-item.active .step-circle {
+        background: #667eea;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .step-item.completed .step-circle {
+        background: #4caf50;
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .step-item.active .step-label {
+        color: #667eea;
+        font-weight: bold;
+    }
+
+    .upload-area {
+        border: 3px dashed #667eea;
+        border-radius: 15px;
+        padding: 60px 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f8f9ff;
+    }
+
+    .upload-area:hover {
+        border-color: #764ba2;
+        background: #f0f2ff;
+        transform: translateY(-5px);
+    }
+
+    .upload-area.dragover {
+        border-color: #4caf50;
+        background: #e8f5e9;
+    }
+
+    .upload-icon {
+        font-size: 4em;
+        color: #667eea;
+        margin-bottom: 20px;
+    }
+
+    .upload-area h3 {
+        font-size: 1.5em;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .upload-area p {
+        color: #666;
+        font-size: 1em;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.1em;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 10px;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-secondary:hover {
+        background: #e0e0e0;
+    }
+
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .preview-table th {
+        background: #667eea;
+        color: white;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+    }
+
+    .preview-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .preview-table tr:hover {
+        background: #f8f9ff;
+    }
+
+    .info-box {
+        background: #f8f9ff;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+    }
+
+    .info-box h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .stat-card h4 {
+        font-size: 0.9em;
+        opacity: 0.9;
+        margin-bottom: 10px;
+    }
+
+    .stat-card p {
+        font-size: 2em;
+        font-weight: bold;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: #f0f0f0;
+        border-radius: 15px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .alert {
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        display: none;
+    }
+
+    .alert.show {
+        display: block;
+        animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateX(-100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .alert-error {
+        background: #ffebee;
+        color: #c62828;
+        border-left: 4px solid #c62828;
+    }
+
+    .alert-success {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border-left: 4px solid #2e7d32;
+    }
+
+    .alert-info {
+        background: #e3f2fd;
+        color: #1565c0;
+        border-left: 4px solid #1565c0;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        display: none;
+    }
+
+    .loading.show {
+        display: block;
+    }
+
+    .button-group {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 30px 0;
+    }
+
+    .table-container {
+        max-height: 500px;
+        overflow-y: auto;
+        border-radius: 10px;
+        margin: 20px 0;
+    }
+
+    .chart-container {
+        margin: 30px 0;
+        padding: 20px;
+        background: #f8f9ff;
+        border-radius: 15px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            margin: 10px;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .step-indicator {
+            flex-direction: column;
+        }
+
+        .step-item:not(:last-child)::after {
+            display: none;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🏠 Housing Price Prediction</h1>
+        <p>Upload your dataset and get instant price predictions using machine learning</p>
+    </div>
+
+    <div class="content">
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step-item active" id="step-indicator-1">
+                <div class="step-circle">1</div>
+                <div class="step-label">Upload</div>
+            </div>
+            <div class="step-item" id="step-indicator-2">
+                <div class="step-circle">2</div>
+                <div class="step-label">Preview</div>
+            </div>
+            <div class="step-item" id="step-indicator-3">
+                <div class="step-circle">3</div>
+                <div class="step-label">Process</div>
+            </div>
+            <div class="step-item" id="step-indicator-4">
+                <div class="step-circle">4</div>
+                <div class="step-label">Results</div>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alert" class="alert"></div>
+
+        <!-- Step 1: Upload -->
+        <div id="step-1" class="step active">
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <h3>Drop your CSV file here</h3>
+                <p>or click to browse</p>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+            <div class="info-box">
+                <h3>📋 Requirements</h3>
+                <p>Your CSV file should contain housing data with columns like:</p>
+                <ul style="margin-left: 20px; margin-top: 10px; color: #666;">
+                    <li>title, location, property_type</li>
+                    <li>area_m2, rooms</li>
+                    <li>Features: swimming_pool, garden, terrace, garage, elevator, etc.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Step 2: Preview -->
+        <div id="step-2" class="step">
+            <h2 style="margin-bottom: 20px;">📊 Data Preview</h2>
+            <div class="stats-grid" id="uploadStats"></div>
+            <div class="table-container">
+                <table class="preview-table" id="previewTable"></table>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+                <button class="btn" onclick="preprocessData()">Continue to Processing →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Processing -->
+        <div id="step-3" class="step">
+            <h2 style="margin-bottom: 20px;">⚙️ Data Processing</h2>
+            <div class="loading show" id="processingLoader">
+                <div class="spinner"></div>
+                <p style="margin-top: 20px; color: #666;">Processing your data...</p>
+            </div>
+            <div id="processingResults" style="display: none;">
+                <div class="info-box">
+                    <h3>✅ Preprocessing Complete</h3>
+                    <div id="preprocessStats"></div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+                    <button class="btn" onclick="makePredictions()">Make Predictions →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Results -->
+        <div id="step-4" class="step">
+            <h2 style="margin-bottom: 20px;">🎯 Prediction Results</h2>
+            <div class="loading" id="predictionLoader">
+                <div class="spinner"></div>
+                <p style="margin-top: 20px; color: #666;">Generating predictions...</p>
+            </div>
+            <div id="resultsContent" style="display: none;">
+                <div class="stats-grid" id="predictionStats"></div>
+                <div class="table-container">
+                    <table class="preview-table" id="resultsTable"></table>
+                </div>
+                <div class="button-group">
+                    <button class="btn" onclick="downloadResults()">⬇️ Download Results</button>
+                    <button class="btn btn-secondary" onclick="location.reload()">🔄 New Prediction</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileUpload(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileUpload(e.target.files[0]);
+        }
+    });
+
+    function handleFileUpload(file) {
+        if (!file.name.endsWith('.csv')) {
+            showAlert('Please upload a CSV file', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        showAlert('Uploading file...', 'info');
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showAlert(data.error, 'error');
+            } else {
+                showAlert(data.message, 'success');
+                displayPreview(data.data);
+                goToStep(2);
+            }
+        })
+        .catch(error => {
+            showAlert('Upload failed: ' + error, 'error');
+        });
+    }
+
+    function displayPreview(data) {
+        // Display stats
+        const statsHtml = `
+            <div class="stat-card">
+                <h4>Total Rows</h4>
+                <p>${data.rows}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Total Columns</h4>
+                <p>${data.columns}</p>
+            </div>
+            <div class="stat-card">
+                <h4>File Name</h4>
+                <p style="font-size: 1em; word-break: break-word;">${data.filename}</p>
+            </div>
+        `;
+        document.getElementById('uploadStats').innerHTML = statsHtml;
+
+        // Display table
+        let tableHtml = '<thead><tr>';
+        data.column_names.forEach(col => {
+            tableHtml += `<th>${col}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+
+        data.preview.forEach(row => {
+            tableHtml += '<tr>';
+            data.column_names.forEach(col => {
+                tableHtml += `<td>${row[col] !== null ? row[col] : 'N/A'}</td>`;
+            });
+            tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody>';
+
+        document.getElementById('previewTable').innerHTML = tableHtml;
+    }
+
+    function preprocessData() {
+        goToStep(3);
+        document.getElementById('processingLoader').classList.add('show');
+        document.getElementById('processingResults').style.display = 'none';
+
+        fetch('/preprocess', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('processingLoader').classList.remove('show');
+
+            if (data.error) {
+                showAlert(data.error, 'error');
+                goToStep(2);
+            } else {
+                showAlert(data.message, 'success');
+
+                const statsHtml = `
+                    <ul style="margin-left: 20px; color: #666;">
+                        <li>Original rows: <strong>${data.data.original_rows}</strong></li>
+                        <li>Processed rows: <strong>${data.data.processed_rows}</strong></li>
+                        <li>Removed rows: <strong>${data.data.removed_rows}</strong></li>
+                        <li>Features: <strong>${data.data.features.length}</strong></li>
+                    </ul>
+                `;
+                document.getElementById('preprocessStats').innerHTML = statsHtml;
+                document.getElementById('processingResults').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            document.getElementById('processingLoader').classList.remove('show');
+            showAlert('Processing failed: ' + error, 'error');
+            goToStep(2);
+        });
+    }
+
+    function makePredictions() {
+        goToStep(4);
+        document.getElementById('predictionLoader').classList.add('show');
+        document.getElementById('resultsContent').style.display = 'none';
+
+        fetch('/predict', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('predictionLoader').classList.remove('show');
+
+            if (data.error) {
+                showAlert(data.error, 'error');
+                if (data.suggestion) {
+                    showAlert(data.suggestion, 'info');
+                }
+                goToStep(3);
+            } else {
+                showAlert(data.message, 'success');
+                displayResults(data.data);
+                document.getElementById('resultsContent').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            document.getElementById('predictionLoader').classList.remove('show');
+            showAlert('Prediction failed: ' + error, 'error');
+            goToStep(3);
+        });
+    }
+
+    function displayResults(data) {
+        // Display statistics
+        const statsHtml = `
+            <div class="stat-card">
+                <h4>Predictions</h4>
+                <p>${data.successful_predictions}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Average Price</h4>
+                <p>${data.statistics.mean.toFixed(0)}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Median Price</h4>
+                <p>${data.statistics.median.toFixed(0)}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Min Price</h4>
+                <p>${data.statistics.min.toFixed(0)}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Max Price</h4>
+                <p>${data.statistics.max.toFixed(0)}</p>
+            </div>
+        `;
+        document.getElementById('predictionStats').innerHTML = statsHtml;
+
+        // Display results table (first 100 rows)
+        if (data.predictions.length > 0) {
+            const columns = Object.keys(data.predictions[0]);
+            let tableHtml = '<thead><tr>';
+            columns.forEach(col => {
+                tableHtml += `<th>${col}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            data.predictions.forEach(row => {
+                tableHtml += '<tr>';
+                columns.forEach(col => {
+                    let value = row[col];
+                    if (col === 'predicted_price' && value !== null) {
+                        value = parseFloat(value).toFixed(2);
+                        tableHtml += `<td style="font-weight: bold; color: #667eea;">${value}</td>`;
+                    } else {
+                        tableHtml += `<td>${value !== null ? value : 'N/A'}</td>`;
+                    }
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody>';
+
+            document.getElementById('resultsTable').innerHTML = tableHtml;
+        }
+    }
+
+    function downloadResults() {
+        window.location.href = '/download';
+    }
+
+    function goToStep(step) {
+        // Hide all steps
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+
+        // Show target step
+        document.getElementById(`step-${step}`).classList.add('active');
+
+        // Update step indicators
+        document.querySelectorAll('.step-item').forEach((el, index) => {
+            el.classList.remove('active', 'completed');
+            if (index + 1 < step) {
+                el.classList.add('completed');
+            } else if (index + 1 === step) {
+                el.classList.add('active');
+            }
+        });
+
+        currentStep = step;
+    }
+
+    function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.className = `alert alert-${type} show`;
+        alert.textContent = message;
+
+        setTimeout(() => {
+            alert.classList.remove('show');
+        }, 5000);
+    }
+</script>
+</body>
+</html>
+

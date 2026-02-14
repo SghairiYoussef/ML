@@ -4,8 +4,12 @@
 pandas>=2.0.0
 numpy>=1.24.0
 
-# LLM local (llama-cpp-python)
-llama-cpp-python>=0.2.0
+# Web Framework
+Flask>=2.3.0
+Werkzeug>=2.3.0
+
+# LLM local (llama-cpp-python) - Optional
+# llama-cpp-python>=0.2.0
 
 # ML Models
 xgboost>=2.0.0
