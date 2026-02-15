@@ -323,14 +323,48 @@ def make_prediction():
         session['results_file'] = results_filename
 
         valid_preds = predictions[~np.isnan(predictions)]
+
+        # Basic statistics
         stats = {
             'count':  len(valid_preds),
             'mean':   float(np.mean(valid_preds)),
             'median': float(np.median(valid_preds)),
             'min':    float(np.min(valid_preds)),
             'max':    float(np.max(valid_preds)),
-            'std':    float(np.std(valid_preds))
+            'std':    float(np.std(valid_preds)),
+            'q25':    float(np.percentile(valid_preds, 25)),
+            'q75':    float(np.percentile(valid_preds, 75)),
+            'range':  float(np.max(valid_preds) - np.min(valid_preds)),
+            'cv':     float(np.std(valid_preds) / np.mean(valid_preds) * 100) if np.mean(valid_preds) > 0 else 0
         }
+
+        # Price distribution for histogram (bins)
+        hist, bin_edges = np.histogram(valid_preds, bins=20)
+        histogram_data = {
+            'counts': hist.tolist(),
+            'bins': bin_edges.tolist()
+        }
+
+        # Price ranges distribution
+        price_ranges = {
+            'below_500k': int(np.sum(valid_preds < 500000)),
+            '500k_1m': int(np.sum((valid_preds >= 500000) & (valid_preds < 1000000))),
+            '1m_2m': int(np.sum((valid_preds >= 1000000) & (valid_preds < 2000000))),
+            '2m_5m': int(np.sum((valid_preds >= 2000000) & (valid_preds < 5000000))),
+            'above_5m': int(np.sum(valid_preds >= 5000000))
+        }
+
+        # Top predictions
+        top_indices = np.argsort(predictions)[-10:][::-1]
+        top_predictions = df_results.iloc[top_indices][['predicted_price']].to_dict('records')
+
+        # Add index/row info to identify properties
+        for i, idx in enumerate(top_indices):
+            top_predictions[i]['index'] = int(idx)
+            if 'title' in df_original.columns:
+                top_predictions[i]['title'] = str(df_original.iloc[idx]['title'])[:50]
+            if 'location' in df_original.columns:
+                top_predictions[i]['location'] = str(df_original.iloc[idx]['location'])
 
         metrics_path = os.path.join(MODEL_DIR, 'models_metrics.json')
         model_metrics = None
@@ -344,7 +378,11 @@ def make_prediction():
             'message': f'Predictions completed using {model_info["label"]}',
             'data': {
                 'predictions':            df_results.head(100).to_dict('records'),
+                'all_predictions':        valid_preds.tolist(),
                 'statistics':             stats,
+                'histogram':              histogram_data,
+                'price_ranges':           price_ranges,
+                'top_predictions':        top_predictions,
                 'total_rows':             len(df_results),
                 'successful_predictions': len(valid_preds),
                 'model_used':             model_info['label'],

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Price Prediction</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
     * {
         margin: 0;
@@ -521,6 +522,172 @@
         font-weight: 600;
         margin-bottom: 15px;
     }
+
+    /* Enhanced Results Styling */
+    .metrics-section {
+        margin: 30px 0;
+    }
+
+    .metrics-section h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.3em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .detailed-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .metric-card-detailed {
+        background: white;
+        border: 2px solid #e8ebff;
+        border-radius: 12px;
+        padding: 18px;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .metric-card-detailed:hover {
+        border-color: #667eea;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .metric-card-detailed .metric-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #667eea;
+        margin: 10px 0;
+    }
+
+    .metric-card-detailed .metric-label {
+        font-size: 0.85em;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .metric-card-detailed .metric-icon {
+        font-size: 1.5em;
+        margin-bottom: 5px;
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 25px;
+        margin: 25px 0;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .chart-card h4 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.1em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 300px;
+    }
+
+    .top-predictions-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .top-prediction-item {
+        background: #f8f9ff;
+        border-left: 4px solid #667eea;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
+
+    .top-prediction-item:hover {
+        background: #f0f2ff;
+        transform: translateX(5px);
+    }
+
+    .prediction-info {
+        flex: 1;
+    }
+
+    .prediction-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .prediction-location {
+        font-size: 0.85em;
+        color: #666;
+    }
+
+    .prediction-price {
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .price-range-bar {
+        background: #f0f0f0;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        overflow: hidden;
+        margin: 15px 0;
+    }
+
+    .price-range-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.85em;
+        font-weight: 600;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .price-range-segment:hover {
+        filter: brightness(1.1);
+    }
+
+    .section-divider {
+        border: none;
+        border-top: 2px solid #e8ebff;
+        margin: 40px 0;
+    }
+
+    @media (max-width: 768px) {
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detailed-metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
 </style>
 </head>
 <body>
@@ -625,10 +792,60 @@
             </div>
             <div id="resultsContent" style="display: none;">
                 <div id="modelUsedTag" style="margin-bottom:10px;"></div>
-                <div class="stats-grid" id="predictionStats"></div>
-                <div class="table-container">
-                    <table class="preview-table" id="resultsTable"></table>
+
+                <!-- Model Performance Metrics -->
+                <div class="metrics-section" id="modelMetricsSection" style="display: none;">
+                    <h3>📊 Model Performance (Validation Metrics)</h3>
+                    <div class="stats-grid" id="modelMetricsGrid"></div>
                 </div>
+
+                <hr class="section-divider">
+
+                <!-- Prediction Statistics -->
+                <div class="metrics-section">
+                    <h3>📈 Prediction Statistics</h3>
+                    <div class="detailed-metrics-grid" id="detailedMetrics"></div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="metrics-section">
+                    <h3>📊 Visual Analysis</h3>
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <h4>📊 Price Distribution</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="histogramChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>🥧 Price Range Distribution</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="pieChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>📦 Box Plot Statistics</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="boxPlotChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>🏆 Top 10 Predictions</h4>
+                            <ul class="top-predictions-list" id="topPredictionsList"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="section-divider">
+
+                <!-- Detailed Results Table -->
+                <div class="metrics-section">
+                    <h3>📋 Detailed Predictions (First 100 rows)</h3>
+                    <div class="table-container">
+                        <table class="preview-table" id="resultsTable"></table>
+                    </div>
+                </div>
+
                 <div class="button-group">
                     <button class="btn" onclick="downloadResults()">⬇️ Download Results</button>
                     <button class="btn btn-secondary" onclick="location.reload()">🔄 New Prediction</button>
@@ -850,18 +1067,75 @@
         document.getElementById('modelUsedTag').innerHTML =
             `<span class="result-model-tag">🤖 ${data.model_used}</span>`;
 
-        // Stats cards
-        const metricsHtml = data.model_metrics
-            ? `<div class="stat-card"><h4>R² Score</h4><p>${data.model_metrics.r2}</p></div>
-               <div class="stat-card"><h4>MAPE</h4><p>${data.model_metrics.mape}%</p></div>`
-            : '';
-        document.getElementById('predictionStats').innerHTML = `
-            <div class="stat-card"><h4>Predictions</h4><p>${data.successful_predictions}</p></div>
-            <div class="stat-card"><h4>Average Price</h4><p>${data.statistics.mean.toFixed(0)}</p></div>
-            <div class="stat-card"><h4>Median Price</h4><p>${data.statistics.median.toFixed(0)}</p></div>
-            <div class="stat-card"><h4>Min Price</h4><p>${data.statistics.min.toFixed(0)}</p></div>
-            <div class="stat-card"><h4>Max Price</h4><p>${data.statistics.max.toFixed(0)}</p></div>
-            ${metricsHtml}`;
+        // Model Performance Metrics (if available)
+        if (data.model_metrics) {
+            document.getElementById('modelMetricsSection').style.display = 'block';
+            document.getElementById('modelMetricsGrid').innerHTML = `
+                <div class="stat-card"><h4>R² Score</h4><p>${data.model_metrics.r2}</p></div>
+                <div class="stat-card"><h4>MAPE</h4><p>${data.model_metrics.mape}%</p></div>
+                <div class="stat-card"><h4>MAE</h4><p>${Number(data.model_metrics.mae).toLocaleString()}</p></div>
+                <div class="stat-card"><h4>RMSE</h4><p>${Number(data.model_metrics.rmse).toLocaleString()}</p></div>`;
+        }
+
+        // Detailed Statistics Cards
+        const s = data.statistics;
+        document.getElementById('detailedMetrics').innerHTML = `
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📊</div>
+                <div class="metric-value">${s.count}</div>
+                <div class="metric-label">Total Predictions</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">💰</div>
+                <div class="metric-value">${s.mean.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">Average Price</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📍</div>
+                <div class="metric-value">${s.median.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">Median Price</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">⬇️</div>
+                <div class="metric-value">${s.min.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">Minimum Price</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">⬆️</div>
+                <div class="metric-value">${s.max.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">Maximum Price</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📏</div>
+                <div class="metric-value">${s.range.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">Price Range</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📐</div>
+                <div class="metric-value">${s.std.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">Std Deviation</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📊</div>
+                <div class="metric-value">${s.cv.toFixed(1)}%</div>
+                <div class="metric-label">Coeff. of Variation</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📉</div>
+                <div class="metric-value">${s.q25.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">25th Percentile</div>
+            </div>
+            <div class="metric-card-detailed">
+                <div class="metric-icon">📈</div>
+                <div class="metric-value">${s.q75.toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                <div class="metric-label">75th Percentile</div>
+            </div>`;
+
+        // Create Charts
+        createHistogram(data.histogram);
+        createPieChart(data.price_ranges);
+        createBoxPlot(data.statistics);
+        displayTopPredictions(data.top_predictions);
 
         // Results table
         if (data.predictions.length > 0) {
@@ -871,7 +1145,7 @@
                 tableHtml += '<tr>' + columns.map(col => {
                     let val = row[col];
                     if (col === 'predicted_price' && val !== null) {
-                        return `<td style="font-weight:bold;color:#667eea;">${parseFloat(val).toFixed(2)}</td>`;
+                        return `<td style="font-weight:bold;color:#667eea;">${parseFloat(val).toLocaleString('en-US', {maximumFractionDigits: 2})}</td>`;
                     }
                     return `<td>${val !== null ? val : 'N/A'}</td>`;
                 }).join('') + '</tr>';
@@ -879,6 +1153,211 @@
             tableHtml += '</tbody>';
             document.getElementById('resultsTable').innerHTML = tableHtml;
         }
+    }
+
+    function createHistogram(histData) {
+        const ctx = document.getElementById('histogramChart');
+        if (!ctx) {
+            console.error('Histogram canvas element not found');
+            return;
+        }
+
+        if (window.histogramChart && typeof window.histogramChart.destroy === 'function') {
+            window.histogramChart.destroy();
+        }
+
+        const labels = histData.bins.slice(0, -1).map((b, i) => {
+            const start = Math.round(b / 1000);
+            const end = Math.round(histData.bins[i + 1] / 1000);
+            return `${start}k-${end}k`;
+        });
+
+        window.histogramChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Number of Properties',
+                    data: histData.counts,
+                    backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    }
+
+    function createPieChart(priceRanges) {
+        const ctx = document.getElementById('pieChart');
+        if (!ctx) {
+            console.error('Pie chart canvas element not found');
+            return;
+        }
+
+        if (window.pieChart && typeof window.pieChart.destroy === 'function') {
+            window.pieChart.destroy();
+        }
+
+        window.pieChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['< 500k', '500k-1M', '1M-2M', '2M-5M', '> 5M'],
+                datasets: [{
+                    data: [
+                        priceRanges.below_500k,
+                        priceRanges['500k_1m'],
+                        priceRanges['1m_2m'],
+                        priceRanges['2m_5m'],
+                        priceRanges.above_5m
+                    ],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(118, 75, 162, 0.8)',
+                        'rgba(76, 175, 80, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(244, 67, 54, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 15, font: { size: 11 } }
+                    }
+                }
+            }
+        });
+    }
+
+    function createBoxPlot(stats) {
+        const ctx = document.getElementById('boxPlotChart');
+        if (!ctx) {
+            console.error('Box plot canvas element not found');
+            return;
+        }
+
+        if (window.boxPlotChart && typeof window.boxPlotChart.destroy === 'function') {
+            window.boxPlotChart.destroy();
+        }
+
+        const boxPlotData = {
+            min: stats.min,
+            q1: stats.q25,
+            median: stats.median,
+            q3: stats.q75,
+            max: stats.max,
+            mean: stats.mean
+        };
+
+        window.boxPlotChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Price Distribution'],
+                datasets: [
+                    {
+                        label: 'Min',
+                        data: [boxPlotData.min],
+                        backgroundColor: 'rgba(102, 126, 234, 0.4)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Q1 (25%)',
+                        data: [boxPlotData.q1],
+                        backgroundColor: 'rgba(118, 75, 162, 0.5)',
+                        borderColor: 'rgba(118, 75, 162, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Median',
+                        data: [boxPlotData.median],
+                        backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Q3 (75%)',
+                        data: [boxPlotData.q3],
+                        backgroundColor: 'rgba(255, 193, 7, 0.5)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Max',
+                        data: [boxPlotData.max],
+                        backgroundColor: 'rgba(244, 67, 54, 0.4)',
+                        borderColor: 'rgba(244, 67, 54, 1)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { padding: 10, font: { size: 11 } }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000).toFixed(0) + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function displayTopPredictions(topPreds) {
+        const list = document.getElementById('topPredictionsList');
+        if (!list) {
+            console.error('Top predictions list element not found');
+            return;
+        }
+
+        list.innerHTML = '';
+
+        if (!topPreds || topPreds.length === 0) {
+            list.innerHTML = '<li style="padding: 15px; text-align: center; color: #666;">No top predictions available</li>';
+            return;
+        }
+
+        topPreds.forEach((pred, index) => {
+            const li = document.createElement('li');
+            li.className = 'top-prediction-item';
+            li.innerHTML = `
+                <div class="prediction-info">
+                    <div class="prediction-title">#${index + 1} ${pred.title || 'Property ' + pred.index}</div>
+                    <div class="prediction-location">${pred.location || 'Location not specified'}</div>
+                </div>
+                <div class="prediction-price">${parseFloat(pred.predicted_price).toLocaleString('en-US', {maximumFractionDigits: 0})}</div>`;
+            list.appendChild(li);
+        });
     }
 
     function downloadResults() { window.location.href = '/download'; }
