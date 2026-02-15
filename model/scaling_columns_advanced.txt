@@ -1,0 +1,11 @@
+area_m2
+rooms
+total_amenities
+area_rooms_interaction
+area_per_room
+amenity_density
+space_quality
+city_frequency
+district_frequency
+location_quality_score
+coastal_premium_score

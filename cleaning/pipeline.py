@@ -19,7 +19,10 @@ def load_data(filepath: str) -> pd.DataFrame:
     Returns:
         DataFrame pandas avec les données chargées
     """
-    df = pd.read_csv(filepath)
+    try:
+        df = pd.read_csv(filepath, encoding='utf-8')
+    except UnicodeDecodeError:
+        df = pd.read_csv(filepath, encoding='latin-1')
     return df
 
 
