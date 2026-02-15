@@ -341,10 +341,10 @@ def train_advanced_model():
     joblib.dump(scaler, scaler_path)
 
     # Save metadata
-    with open(os.path.join(model_dir, 'scaling_columns_advanced.txt'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(model_dir, 'scaling_columns_advanced.txt'), 'w', encoding='utf-8', errors='replace') as f:
         f.write('\n'.join(numeric_cols))
 
-    with open(os.path.join(model_dir, 'feature_names_advanced.txt'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(model_dir, 'feature_names_advanced.txt'), 'w', encoding='utf-8', errors='replace') as f:
         f.write('\n'.join(X.columns.tolist()))
 
     feature_importance.to_csv(os.path.join(model_dir, 'feature_importance_advanced.csv'), index=False)

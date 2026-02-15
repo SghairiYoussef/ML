@@ -248,7 +248,7 @@ def train_model():
 
     # Save scaling column names
     scaling_cols_path = os.path.join(model_dir, 'scaling_columns.txt')
-    with open(scaling_cols_path, 'w', encoding='utf-8') as f:
+    with open(scaling_cols_path, 'w', encoding='utf-8', errors='replace') as f:
         f.write('\n'.join(numeric_cols))
     print(f"💾 Saved scaling columns to: {scaling_cols_path}")
 
@@ -264,7 +264,7 @@ def train_model():
 
     # Save feature names for reference
     feature_names_path = os.path.join(model_dir, 'feature_names.txt')
-    with open(feature_names_path, 'w', encoding='utf-8') as f:
+    with open(feature_names_path, 'w', encoding='utf-8', errors='replace') as f:
         f.write('\n'.join(X.columns.tolist()))
     print(f"   ✅ Feature names saved to: {feature_names_path}")
 

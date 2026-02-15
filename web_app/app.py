@@ -178,7 +178,10 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(filepath)
         try:
-            df = pd.read_csv(filepath)
+            try:
+                df = pd.read_csv(filepath, encoding='utf-8')
+            except UnicodeDecodeError:
+                df = pd.read_csv(filepath, encoding='latin-1')
         except Exception as e:
             os.remove(filepath)
             return jsonify({'error': f'Invalid CSV file: {str(e)}'}), 400
@@ -208,7 +211,10 @@ def preprocess():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], session['uploaded_file'])
         if not os.path.exists(filepath):
             return jsonify({'error': 'Uploaded file not found'}), 404
-        df = pd.read_csv(filepath)
+        try:
+            df = pd.read_csv(filepath, encoding='utf-8')
+        except UnicodeDecodeError:
+            df = pd.read_csv(filepath, encoding='latin-1')
         processed_df, original_df, removed_rows, error = preprocess_for_prediction(df)
         if error:
             return jsonify({'error': f'Preprocessing error: {error}'}), 500
@@ -252,7 +258,10 @@ def make_prediction():
                 'suggestion': 'Run train_all_models.py to train all models.'
             }), 404
 
-        df_processed = pd.read_csv(processed_filepath)
+        try:
+            df_processed = pd.read_csv(processed_filepath, encoding='utf-8')
+        except UnicodeDecodeError:
+            df_processed = pd.read_csv(processed_filepath, encoding='latin-1')
         model = joblib.load(model_path)
 
         scaler_path       = os.path.join(MODEL_DIR, 'scaler_advanced.joblib')
@@ -263,8 +272,12 @@ def make_prediction():
 
         if os.path.exists(scaler_path) and os.path.exists(scaling_cols_path):
             scaler = joblib.load(scaler_path)
-            with open(scaling_cols_path, 'r', encoding='utf-8') as f:
-                scaling_cols = [l.strip() for l in f.readlines()]
+            try:
+                with open(scaling_cols_path, 'r', encoding='utf-8') as f:
+                    scaling_cols = [l.strip() for l in f.readlines()]
+            except UnicodeDecodeError:
+                with open(scaling_cols_path, 'r', encoding='latin-1') as f:
+                    scaling_cols = [l.strip() for l in f.readlines()]
             df_scaled = df_processed.copy()
             existing_cols = [c for c in scaling_cols if c in df_scaled.columns]
             if existing_cols:
@@ -275,8 +288,12 @@ def make_prediction():
         if not os.path.exists(feature_names_path):
             feature_names_path = os.path.join(MODEL_DIR, 'feature_names.txt')
         if os.path.exists(feature_names_path):
-            with open(feature_names_path, 'r', encoding='utf-8') as f:
-                training_features = [l.strip() for l in f.readlines()]
+            try:
+                with open(feature_names_path, 'r', encoding='utf-8') as f:
+                    training_features = [l.strip() for l in f.readlines()]
+            except UnicodeDecodeError:
+                with open(feature_names_path, 'r', encoding='latin-1') as f:
+                    training_features = [l.strip() for l in f.readlines()]
             for col in training_features:
                 if col not in df_processed.columns:
                     df_processed[col] = 0
@@ -289,7 +306,10 @@ def make_prediction():
             predictions = model.predict(df_processed)
 
         original_filepath = os.path.join(app.config['UPLOAD_FOLDER'], session['uploaded_file'])
-        df_original = pd.read_csv(original_filepath)
+        try:
+            df_original = pd.read_csv(original_filepath, encoding='utf-8')
+        except UnicodeDecodeError:
+            df_original = pd.read_csv(original_filepath, encoding='latin-1')
         df_results  = df_original.copy()
         if len(predictions) < len(df_original):
             df_results['predicted_price'] = np.nan
