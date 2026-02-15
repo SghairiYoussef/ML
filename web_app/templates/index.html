@@ -386,6 +386,141 @@
             display: none;
         }
     }
+
+    /* ── Model Selector ── */
+    .model-selector-section {
+        margin: 25px 0;
+    }
+
+    .model-selector-section h3 {
+        color: #333;
+        margin-bottom: 16px;
+        font-size: 1.1em;
+    }
+
+    .model-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+    }
+
+    .model-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: all 0.25s;
+        background: #fff;
+        position: relative;
+    }
+
+    .model-card:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102,126,234,0.2);
+    }
+
+    .model-card.selected {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #f0f2ff 0%, #e8ebff 100%);
+        box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+    }
+
+    .model-card.untrained {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .model-card.untrained:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: #e0e0e0;
+        background: #fff;
+    }
+
+    .model-card-title {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.92em;
+        margin-bottom: 4px;
+    }
+
+    .model-card-badge {
+        display: inline-block;
+        font-size: 0.72em;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .badge-available {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-unavailable {
+        background: #fce4ec;
+        color: #b71c1c;
+    }
+
+    .model-card.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        color: #667eea;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .model-metrics-box {
+        background: #f0f2ff;
+        border: 1px solid #c5cae9;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-top: 15px;
+        display: none;
+    }
+
+    .model-metrics-box h4 {
+        color: #3949ab;
+        margin-bottom: 10px;
+        font-size: 0.95em;
+    }
+
+    .metrics-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .metric-item {
+        text-align: center;
+    }
+
+    .metric-item .metric-val {
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #3949ab;
+    }
+
+    .metric-item .metric-lbl {
+        font-size: 0.75em;
+        color: #555;
+        margin-top: 2px;
+    }
+
+    .result-model-tag {
+        display: inline-block;
+        background: linear-gradient(135deg,#667eea,#764ba2);
+        color: white;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 0.88em;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
 </style>
 </head>
 <body>
@@ -463,9 +598,20 @@
                     <h3>✅ Preprocessing Complete</h3>
                     <div id="preprocessStats"></div>
                 </div>
+                <!-- ── Model Selector ── -->
+                <div class="model-selector-section">
+                    <h3>🤖 Select Prediction Model</h3>
+                    <div class="model-grid" id="modelGrid">
+                        <!-- populated by JS -->
+                    </div>
+                    <div class="model-metrics-box" id="metricsBox">
+                        <h4>📊 Validation Metrics (from training)</h4>
+                        <div class="metrics-row" id="metricsRow"></div>
+                    </div>
+                </div>
                 <div class="button-group">
                     <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
-                    <button class="btn" onclick="makePredictions()">Make Predictions →</button>
+                    <button class="btn" id="predictBtn" onclick="makePredictions()">Make Predictions →</button>
                 </div>
             </div>
         </div>
@@ -478,6 +624,7 @@
                 <p style="margin-top: 20px; color: #666;">Generating predictions...</p>
             </div>
             <div id="resultsContent" style="display: none;">
+                <div id="modelUsedTag" style="margin-bottom:10px;"></div>
                 <div class="stats-grid" id="predictionStats"></div>
                 <div class="table-container">
                     <table class="preview-table" id="resultsTable"></table>
@@ -493,246 +640,257 @@
 
 <script>
     let currentStep = 1;
+    let selectedModel = null;
+    let allModels = [];
+    let allMetrics = {};
 
     // File upload handling
     const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
+    const fileInput  = document.getElementById('fileInput');
 
-    // Drag and drop
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
     });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-    });
-
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadArea.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleFileUpload(files[0]);
-        }
+        if (e.dataTransfer.files.length > 0) handleFileUpload(e.dataTransfer.files[0]);
     });
-
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFileUpload(e.target.files[0]);
-        }
+        if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
     });
 
+    // ── Model helpers ───────────────────────────────────────
+    function loadModels() {
+        fetch('/models')
+            .then(r => r.json())
+            .then(data => {
+                allModels = data.models;
+                renderModelGrid();
+            })
+            .catch(() => console.warn('Could not load model list'));
+    }
+
+    function renderModelGrid() {
+        const grid = document.getElementById('modelGrid');
+        grid.innerHTML = '';
+        allModels.forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'model-card' + (m.trained ? '' : ' untrained');
+            card.dataset.key = m.key;
+            card.innerHTML = `
+                <div class="model-card-title">${m.label}</div>
+                <span class="model-card-badge ${m.trained ? 'badge-available' : 'badge-unavailable'}">
+                    ${m.trained ? 'Ready' : 'Not trained'}
+                </span>`;
+            if (m.trained) {
+                card.addEventListener('click', () => selectModel(m.key));
+            }
+            grid.appendChild(card);
+        });
+
+        // Auto-select first available
+        const first = allModels.find(m => m.trained);
+        if (first) selectModel(first.key);
+    }
+
+    function selectModel(key) {
+        selectedModel = key;
+        document.querySelectorAll('.model-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.key === key);
+        });
+        showModelMetrics(key);
+    }
+
+    function showModelMetrics(key) {
+        const box  = document.getElementById('metricsBox');
+        const row  = document.getElementById('metricsRow');
+        const m    = allMetrics[key];
+        if (m) {
+            row.innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-val">${m.r2}</div>
+                    <div class="metric-lbl">R²</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-val">${m.mape}%</div>
+                    <div class="metric-lbl">MAPE</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-val">${Number(m.mae).toLocaleString()}</div>
+                    <div class="metric-lbl">MAE</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-val">${Number(m.rmse).toLocaleString()}</div>
+                    <div class="metric-lbl">RMSE</div>
+                </div>`;
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function loadMetrics() {
+        // Load metrics from the JSON endpoint by calling predict with a dummy or via model-info
+        // We'll fetch them when the first model info comes back via the prediction response
+    }
+
+    // ── File upload ────────────────────────────────────────
     function handleFileUpload(file) {
         if (!file.name.endsWith('.csv')) {
             showAlert('Please upload a CSV file', 'error');
             return;
         }
-
         const formData = new FormData();
         formData.append('file', file);
-
         showAlert('Uploading file...', 'info');
-
-        fetch('/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                showAlert(data.error, 'error');
-            } else {
-                showAlert(data.message, 'success');
-                displayPreview(data.data);
-                goToStep(2);
-            }
-        })
-        .catch(error => {
-            showAlert('Upload failed: ' + error, 'error');
-        });
+        fetch('/upload', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { showAlert(data.error, 'error'); }
+                else {
+                    showAlert(data.message, 'success');
+                    displayPreview(data.data);
+                    goToStep(2);
+                }
+            })
+            .catch(err => showAlert('Upload failed: ' + err, 'error'));
     }
 
     function displayPreview(data) {
-        // Display stats
-        const statsHtml = `
-            <div class="stat-card">
-                <h4>Total Rows</h4>
-                <p>${data.rows}</p>
-            </div>
-            <div class="stat-card">
-                <h4>Total Columns</h4>
-                <p>${data.columns}</p>
-            </div>
-            <div class="stat-card">
-                <h4>File Name</h4>
-                <p style="font-size: 1em; word-break: break-word;">${data.filename}</p>
-            </div>
-        `;
-        document.getElementById('uploadStats').innerHTML = statsHtml;
-
-        // Display table
-        let tableHtml = '<thead><tr>';
-        data.column_names.forEach(col => {
-            tableHtml += `<th>${col}</th>`;
-        });
-        tableHtml += '</tr></thead><tbody>';
-
+        document.getElementById('uploadStats').innerHTML = `
+            <div class="stat-card"><h4>Total Rows</h4><p>${data.rows}</p></div>
+            <div class="stat-card"><h4>Total Columns</h4><p>${data.columns}</p></div>
+            <div class="stat-card"><h4>File Name</h4><p style="font-size:1em;word-break:break-word;">${data.filename}</p></div>`;
+        let tableHtml = '<thead><tr>' + data.column_names.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
         data.preview.forEach(row => {
-            tableHtml += '<tr>';
-            data.column_names.forEach(col => {
-                tableHtml += `<td>${row[col] !== null ? row[col] : 'N/A'}</td>`;
-            });
-            tableHtml += '</tr>';
+            tableHtml += '<tr>' + data.column_names.map(c => `<td>${row[c] !== null ? row[c] : 'N/A'}</td>`).join('') + '</tr>';
         });
         tableHtml += '</tbody>';
-
         document.getElementById('previewTable').innerHTML = tableHtml;
     }
 
+    // ── Preprocessing ──────────────────────────────────────
     function preprocessData() {
         goToStep(3);
         document.getElementById('processingLoader').classList.add('show');
         document.getElementById('processingResults').style.display = 'none';
-
-        fetch('/preprocess', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('processingLoader').classList.remove('show');
-
-            if (data.error) {
-                showAlert(data.error, 'error');
+        fetch('/preprocess', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('processingLoader').classList.remove('show');
+                if (data.error) {
+                    showAlert(data.error, 'error');
+                    goToStep(2);
+                } else {
+                    showAlert(data.message, 'success');
+                    document.getElementById('preprocessStats').innerHTML = `
+                        <ul style="margin-left:20px;color:#666;">
+                            <li>Original rows: <strong>${data.data.original_rows}</strong></li>
+                            <li>Processed rows: <strong>${data.data.processed_rows}</strong></li>
+                            <li>Removed rows: <strong>${data.data.removed_rows}</strong></li>
+                            <li>Features: <strong>${data.data.features.length}</strong></li>
+                        </ul>`;
+                    document.getElementById('processingResults').style.display = 'block';
+                    loadModels();
+                }
+            })
+            .catch(err => {
+                document.getElementById('processingLoader').classList.remove('show');
+                showAlert('Processing failed: ' + err, 'error');
                 goToStep(2);
-            } else {
-                showAlert(data.message, 'success');
-
-                const statsHtml = `
-                    <ul style="margin-left: 20px; color: #666;">
-                        <li>Original rows: <strong>${data.data.original_rows}</strong></li>
-                        <li>Processed rows: <strong>${data.data.processed_rows}</strong></li>
-                        <li>Removed rows: <strong>${data.data.removed_rows}</strong></li>
-                        <li>Features: <strong>${data.data.features.length}</strong></li>
-                    </ul>
-                `;
-                document.getElementById('preprocessStats').innerHTML = statsHtml;
-                document.getElementById('processingResults').style.display = 'block';
-            }
-        })
-        .catch(error => {
-            document.getElementById('processingLoader').classList.remove('show');
-            showAlert('Processing failed: ' + error, 'error');
-            goToStep(2);
-        });
+            });
     }
 
+    // ── Prediction ─────────────────────────────────────────
     function makePredictions() {
+        if (!selectedModel) {
+            showAlert('Please select a model first', 'error');
+            return;
+        }
         goToStep(4);
         document.getElementById('predictionLoader').classList.add('show');
         document.getElementById('resultsContent').style.display = 'none';
 
         fetch('/predict', {
-            method: 'POST'
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ model: selectedModel })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             document.getElementById('predictionLoader').classList.remove('show');
-
             if (data.error) {
                 showAlert(data.error, 'error');
-                if (data.suggestion) {
-                    showAlert(data.suggestion, 'info');
-                }
+                if (data.suggestion) showAlert(data.suggestion, 'info');
                 goToStep(3);
             } else {
                 showAlert(data.message, 'success');
+
+                // Cache metrics for UI
+                if (data.data.model_metrics) {
+                    allMetrics[data.data.model_key] = data.data.model_metrics;
+                }
+
                 displayResults(data.data);
                 document.getElementById('resultsContent').style.display = 'block';
             }
         })
-        .catch(error => {
+        .catch(err => {
             document.getElementById('predictionLoader').classList.remove('show');
-            showAlert('Prediction failed: ' + error, 'error');
+            showAlert('Prediction failed: ' + err, 'error');
             goToStep(3);
         });
     }
 
     function displayResults(data) {
-        // Display statistics
-        const statsHtml = `
-            <div class="stat-card">
-                <h4>Predictions</h4>
-                <p>${data.successful_predictions}</p>
-            </div>
-            <div class="stat-card">
-                <h4>Average Price</h4>
-                <p>${data.statistics.mean.toFixed(0)}</p>
-            </div>
-            <div class="stat-card">
-                <h4>Median Price</h4>
-                <p>${data.statistics.median.toFixed(0)}</p>
-            </div>
-            <div class="stat-card">
-                <h4>Min Price</h4>
-                <p>${data.statistics.min.toFixed(0)}</p>
-            </div>
-            <div class="stat-card">
-                <h4>Max Price</h4>
-                <p>${data.statistics.max.toFixed(0)}</p>
-            </div>
-        `;
-        document.getElementById('predictionStats').innerHTML = statsHtml;
+        // Model tag
+        document.getElementById('modelUsedTag').innerHTML =
+            `<span class="result-model-tag">🤖 ${data.model_used}</span>`;
 
-        // Display results table (first 100 rows)
+        // Stats cards
+        const metricsHtml = data.model_metrics
+            ? `<div class="stat-card"><h4>R² Score</h4><p>${data.model_metrics.r2}</p></div>
+               <div class="stat-card"><h4>MAPE</h4><p>${data.model_metrics.mape}%</p></div>`
+            : '';
+        document.getElementById('predictionStats').innerHTML = `
+            <div class="stat-card"><h4>Predictions</h4><p>${data.successful_predictions}</p></div>
+            <div class="stat-card"><h4>Average Price</h4><p>${data.statistics.mean.toFixed(0)}</p></div>
+            <div class="stat-card"><h4>Median Price</h4><p>${data.statistics.median.toFixed(0)}</p></div>
+            <div class="stat-card"><h4>Min Price</h4><p>${data.statistics.min.toFixed(0)}</p></div>
+            <div class="stat-card"><h4>Max Price</h4><p>${data.statistics.max.toFixed(0)}</p></div>
+            ${metricsHtml}`;
+
+        // Results table
         if (data.predictions.length > 0) {
             const columns = Object.keys(data.predictions[0]);
-            let tableHtml = '<thead><tr>';
-            columns.forEach(col => {
-                tableHtml += `<th>${col}</th>`;
-            });
-            tableHtml += '</tr></thead><tbody>';
-
+            let tableHtml = '<thead><tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
             data.predictions.forEach(row => {
-                tableHtml += '<tr>';
-                columns.forEach(col => {
-                    let value = row[col];
-                    if (col === 'predicted_price' && value !== null) {
-                        value = parseFloat(value).toFixed(2);
-                        tableHtml += `<td style="font-weight: bold; color: #667eea;">${value}</td>`;
-                    } else {
-                        tableHtml += `<td>${value !== null ? value : 'N/A'}</td>`;
+                tableHtml += '<tr>' + columns.map(col => {
+                    let val = row[col];
+                    if (col === 'predicted_price' && val !== null) {
+                        return `<td style="font-weight:bold;color:#667eea;">${parseFloat(val).toFixed(2)}</td>`;
                     }
-                });
-                tableHtml += '</tr>';
+                    return `<td>${val !== null ? val : 'N/A'}</td>`;
+                }).join('') + '</tr>';
             });
             tableHtml += '</tbody>';
-
             document.getElementById('resultsTable').innerHTML = tableHtml;
         }
     }
 
-    function downloadResults() {
-        window.location.href = '/download';
-    }
+    function downloadResults() { window.location.href = '/download'; }
 
     function goToStep(step) {
-        // Hide all steps
         document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-
-        // Show target step
         document.getElementById(`step-${step}`).classList.add('active');
-
-        // Update step indicators
-        document.querySelectorAll('.step-item').forEach((el, index) => {
-            el.classList.remove('active', 'completed');
-            if (index + 1 < step) {
-                el.classList.add('completed');
-            } else if (index + 1 === step) {
-                el.classList.add('active');
-            }
+        document.querySelectorAll('.step-item').forEach((el, i) => {
+            el.classList.remove('active','completed');
+            if (i + 1 < step) el.classList.add('completed');
+            else if (i + 1 === step) el.classList.add('active');
         });
-
         currentStep = step;
     }
 
@@ -740,12 +898,8 @@
         const alert = document.getElementById('alert');
         alert.className = `alert alert-${type} show`;
         alert.textContent = message;
-
-        setTimeout(() => {
-            alert.classList.remove('show');
-        }, 5000);
+        setTimeout(() => alert.classList.remove('show'), 5000);
     }
 </script>
 </body>
 </html>
-
