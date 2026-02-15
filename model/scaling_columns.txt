@@ -1,0 +1,4 @@
+area_m2
+rooms
+total_amenities
+area_rooms_interaction
