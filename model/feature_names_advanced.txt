@@ -26,7 +26,7 @@ property_type_Duplex
 property_type_Immeuble
 property_type_Maison
 property_type_Panthouse
-property_type_Résidence
+property_type_RÃ©sidence
 property_type_Studio
 property_type_Terrain
 property_type_Triplex

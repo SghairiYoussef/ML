@@ -35,17 +35,40 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/4] Checking for trained model...
+echo [2/4] Checking for trained models...
+
+REM Check for basic model
 if not exist "..\model\xgboost.joblib" (
-    echo Model not found. Training model...
+    echo Basic model not found. Training basic model...
     %PYTHON_PATH% train_model.py
     if errorlevel 1 (
-        echo ERROR: Model training failed
+        echo ERROR: Basic model training failed
         pause
         exit /b 1
     )
 ) else (
-    echo Model found!
+    echo Basic model found!
+)
+
+REM Check for advanced ensemble model (required as default)
+if not exist "..\model\xgboost_advanced.joblib" (
+    echo.
+    echo Advanced ensemble model not found. Training advanced model...
+    echo This may take 5-10 minutes. Please wait...
+    echo.
+    %PYTHON_PATH% train_advanced_model.py
+    if errorlevel 1 (
+        echo WARNING: Advanced model training failed
+        echo The application will use a fallback model
+        echo.
+    ) else (
+        echo Advanced model trained successfully!
+        echo.
+        echo IMPORTANT: Please update model\models_metrics.json with the metrics shown above
+        echo.
+    )
+) else (
+    echo Advanced ensemble model found!
 )
 
 echo.

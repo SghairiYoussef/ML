@@ -721,26 +721,144 @@
         <!-- Alert Container -->
         <div id="alert" class="alert"></div>
 
-        <!-- Step 1: Upload -->
-        <div id="step-1" class="step active">
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                <div class="upload-icon">📁</div>
-                <h3>Drop your CSV file here</h3>
-                <p>or click to browse</p>
-                <input type="file" id="fileInput" accept=".csv">
-            </div>
-            <div class="info-box">
-                <h3>📋 Requirements</h3>
-                <p>Your CSV file should contain housing data with columns like:</p>
-                <ul style="margin-left: 20px; margin-top: 10px; color: #666;">
-                    <li>title, location, property_type</li>
-                    <li>area_m2, rooms</li>
-                    <li>Features: swimming_pool, garden, terrace, garage, elevator, etc.</li>
-                </ul>
-            </div>
+<!-- Step 1: Upload -->
+<div id="step-1" class="step active">
+    <h2 style="margin-bottom: 30px;">Choose Input Method</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 900px; margin: 0 auto;">
+        <!-- CSV Upload Option -->
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s;" onclick="showUploadMethod('csv')">
+            <div style="font-size: 3em; text-align: center; margin-bottom: 15px;">📁</div>
+            <h3 style="text-align: center; color: #667eea; margin-bottom: 10px;">Bulk Upload (CSV)</h3>
+            <p style="text-align: center; color: #666;">Upload a CSV file with multiple properties for batch predictions</p>
         </div>
 
-        <!-- Step 2: Preview -->
+        <!-- Single Property Option -->
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s;" onclick="showUploadMethod('single')">
+            <div style="font-size: 3em; text-align: center; margin-bottom: 15px;">🏠</div>
+            <h3 style="text-align: center; color: #667eea; margin-bottom: 10px;">Single Property</h3>
+            <p style="text-align: center; color: #666;">Enter details for one property and get instant price prediction</p>
+        </div>
+    </div>
+
+    <!-- CSV Upload Form (Initially Hidden) -->
+    <div id="csvUploadSection" style="display: none; margin-top: 30px;">
+        <button class="btn btn-secondary" onclick="showUploadMethod('choice')" style="margin-bottom: 20px;">⬅️ Back to Choice</button>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📁</div>
+            <h3>Drop your CSV file here</h3>
+            <p>or click to browse</p>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+        <div class="info-box">
+            <h3>📋 Requirements</h3>
+            <p>Your CSV file should contain housing data with columns like:</p>
+            <ul style="margin-left: 20px; margin-top: 10px; color: #666;">
+                <li>title, location, property_type</li>
+                <li>area_m2, rooms</li>
+                <li>Features: swimming_pool, garden, terrace, garage, elevator, etc.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Single Property Form (Initially Hidden) -->
+    <div id="singlePropertySection" style="display: none; margin-top: 30px;">
+        <button class="btn btn-secondary" onclick="showUploadMethod('choice')" style="margin-bottom: 20px;">⬅️ Back to Choice</button>
+
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto;">
+            <h3 style="color: #667eea; margin-bottom: 25px; text-align: center;">🏠 Enter Property Details</h3>
+
+            <form id="singlePropertyForm" style="display: grid; gap: 20px;">
+                <!-- Basic Information -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Title/Description</label>
+                        <input type="text" id="input_title" class="form-input" placeholder="e.g., Villa luxueuse avec piscine" style="width: 100%; padding: 10px; border: 2px solid #e8ebff; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Location</label>
+                        <input type="text" id="input_location" class="form-input" placeholder="e.g., Tunis, La Marsa" style="width: 100%; padding: 10px; border: 2px solid #e8ebff; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Property Type *</label>
+                        <select id="input_property_type" class="form-input" required style="width: 100%; padding: 10px; border: 2px solid #e8ebff; border-radius: 8px;">
+                            <option value="">Select...</option>
+                            <option value="Appartement">Appartement</option>
+                            <option value="Villa">Villa</option>
+                            <option value="Maison">Maison</option>
+                            <option value="Studio">Studio</option>
+                            <option value="Duplex">Duplex</option>
+                            <option value="Riad">Riad</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Area (m²) *</label>
+                        <input type="number" id="input_area_m2" class="form-input" placeholder="e.g., 120" min="1" required style="width: 100%; padding: 10px; border: 2px solid #e8ebff; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600;">Rooms *</label>
+                        <input type="number" id="input_rooms" class="form-input" placeholder="e.g., 3" min="1" required style="width: 100%; padding: 10px; border: 2px solid #e8ebff; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <!-- Amenities -->
+                <div>
+                    <label style="display: block; margin-bottom: 10px; color: #333; font-weight: 600;">Amenities & Features</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_swimming_pool"> Swimming Pool
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_garden"> Garden
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_terrace"> Terrace
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_garage"> Garage
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_elevator"> Elevator
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_air_conditioning"> Air Conditioning
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_heating"> Heating
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_equipped_kitchen"> Equipped Kitchen
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_security"> Security
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_doorman"> Doorman
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_cellar"> Cellar
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_double_glazing"> Double Glazing
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9ff; border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="input_reinforced_door"> Reinforced Door
+                        </label>
+                    </div>
+                </div>
+
+                <div class="button-group" style="margin-top: 20px;">
+                    <button type="button" class="btn" onclick="submitSingleProperty()">🎯 Predict Price</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetSinglePropertyForm()">🔄 Reset Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Step 2: Preview -->
         <div id="step-2" class="step">
             <h2 style="margin-bottom: 20px;">📊 Data Preview</h2>
             <div class="stats-grid" id="uploadStats"></div>
@@ -860,6 +978,175 @@
     let selectedModel = null;
     let allModels = [];
     let allMetrics = {};
+    let isSinglePropertyMode = false;
+
+    // Show/hide upload method sections
+    function showUploadMethod(method) {
+        if (method === 'csv') {
+            document.getElementById('csvUploadSection').style.display = 'block';
+            document.getElementById('singlePropertySection').style.display = 'none';
+            document.querySelector('#step-1 > div:first-child').style.display = 'none';
+            isSinglePropertyMode = false;
+        } else if (method === 'single') {
+            document.getElementById('csvUploadSection').style.display = 'none';
+            document.getElementById('singlePropertySection').style.display = 'block';
+            document.querySelector('#step-1 > div:first-child').style.display = 'none';
+            isSinglePropertyMode = true;
+        } else if (method === 'choice') {
+            document.getElementById('csvUploadSection').style.display = 'none';
+            document.getElementById('singlePropertySection').style.display = 'none';
+            document.querySelector('#step-1 > div:first-child').style.display = 'block';
+            isSinglePropertyMode = false;
+        }
+    }
+
+    // Reset single property form
+    function resetSinglePropertyForm() {
+        document.getElementById('singlePropertyForm').reset();
+    }
+
+    // Submit single property for prediction
+    function submitSingleProperty() {
+        // Validate required fields
+        const propertyType = document.getElementById('input_property_type').value;
+        const area = document.getElementById('input_area_m2').value;
+        const rooms = document.getElementById('input_rooms').value;
+
+        if (!propertyType || !area || !rooms) {
+            showAlert('Please fill in all required fields (Property Type, Area, Rooms)', 'error');
+            return;
+        }
+
+        // Show loading
+        goToStep(4);
+        document.getElementById('predictionLoader').classList.add('show');
+        document.getElementById('resultsContent').style.display = 'none';
+
+        // Collect form data
+        const propertyData = {
+            title: document.getElementById('input_title').value || 'Property',
+            location: document.getElementById('input_location').value || 'Unknown',
+            property_type: propertyType,
+            area_m2: parseFloat(area),
+            rooms: parseInt(rooms),
+            swimming_pool: document.getElementById('input_swimming_pool').checked ? 1 : 0,
+            garden: document.getElementById('input_garden').checked ? 1 : 0,
+            terrace: document.getElementById('input_terrace').checked ? 1 : 0,
+            garage: document.getElementById('input_garage').checked ? 1 : 0,
+            elevator: document.getElementById('input_elevator').checked ? 1 : 0,
+            air_conditioning: document.getElementById('input_air_conditioning').checked ? 1 : 0,
+            heating: document.getElementById('input_heating').checked ? 1 : 0,
+            equipped_kitchen: document.getElementById('input_equipped_kitchen').checked ? 1 : 0,
+            security: document.getElementById('input_security').checked ? 1 : 0,
+            doorman: document.getElementById('input_doorman').checked ? 1 : 0,
+            cellar: document.getElementById('input_cellar').checked ? 1 : 0,
+            double_glazing: document.getElementById('input_double_glazing').checked ? 1 : 0,
+            reinforced_door: document.getElementById('input_reinforced_door').checked ? 1 : 0
+        };
+
+        // Send to backend
+        fetch('/predict_single', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(propertyData)
+        })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('predictionLoader').classList.remove('show');
+            if (data.error) {
+                showAlert(data.error, 'error');
+                goToStep(1);
+            } else {
+                displaySinglePropertyResult(data.data, propertyData);
+            }
+        })
+        .catch(err => {
+            document.getElementById('predictionLoader').classList.remove('show');
+            showAlert('Prediction failed: ' + err, 'error');
+            goToStep(1);
+        });
+    }
+
+    // Display single property prediction result
+    function displaySinglePropertyResult(data, propertyData) {
+        // Hide model metrics section initially
+        document.getElementById('modelMetricsSection').style.display = 'none';
+
+        // Model tag
+        document.getElementById('modelUsedTag').innerHTML =
+            `<span class="result-model-tag">🤖 ${data.model_used}</span>`;
+
+        // Create property info card
+        const propertyInfoHtml = `
+            <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);">
+                <h3 style="margin-bottom: 20px; font-size: 1.8em;">🏠 ${propertyData.title}</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                    <div><strong>📍 Location:</strong> ${propertyData.location}</div>
+                    <div><strong>🏢 Type:</strong> ${propertyData.property_type}</div>
+                    <div><strong>📐 Area:</strong> ${propertyData.area_m2} m²</div>
+                    <div><strong>🚪 Rooms:</strong> ${propertyData.rooms}</div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.3);">
+                    <strong>🎯 Predicted Price:</strong>
+                    <div style="font-size: 2.5em; font-weight: bold; margin-top: 10px;">
+                        ${data.predicted_price.toLocaleString('en-US', {maximumFractionDigits: 0})} DT
+                    </div>
+                </div>
+            </div>`;
+
+        // Display property info
+        document.getElementById('detailedMetrics').innerHTML = propertyInfoHtml;
+
+        // Hide charts for single property
+        document.querySelector('.chart-grid').parentElement.style.display = 'none';
+
+        // Hide detailed table
+        document.querySelectorAll('.metrics-section').forEach(section => {
+            if (section.querySelector('#resultsTable')) {
+                section.style.display = 'none';
+            }
+        });
+
+        // Show model metrics if available
+        if (data.model_metrics) {
+            document.getElementById('modelMetricsSection').style.display = 'block';
+            document.getElementById('modelMetricsGrid').innerHTML = `
+                <div class="stat-card"><h4>R² Score</h4><p>${data.model_metrics.r2}</p></div>
+                <div class="stat-card"><h4>MAPE</h4><p>${data.model_metrics.mape}%</p></div>
+                <div class="stat-card"><h4>MAE</h4><p>${Number(data.model_metrics.mae).toLocaleString()}</p></div>
+                <div class="stat-card"><h4>RMSE</h4><p>${Number(data.model_metrics.rmse).toLocaleString()}</p></div>`;
+        }
+
+        // Show features summary
+        const amenities = [];
+        if (propertyData.swimming_pool) amenities.push('🏊 Pool');
+        if (propertyData.garden) amenities.push('🌳 Garden');
+        if (propertyData.terrace) amenities.push('🌅 Terrace');
+        if (propertyData.garage) amenities.push('🚗 Garage');
+        if (propertyData.elevator) amenities.push('🛗 Elevator');
+        if (propertyData.air_conditioning) amenities.push('❄️ AC');
+        if (propertyData.heating) amenities.push('🔥 Heating');
+        if (propertyData.equipped_kitchen) amenities.push('🍳 Kitchen');
+        if (propertyData.security) amenities.push('🔒 Security');
+        if (propertyData.doorman) amenities.push('👮 Doorman');
+        if (propertyData.cellar) amenities.push('📦 Cellar');
+        if (propertyData.double_glazing) amenities.push('🪟 Double Glazing');
+        if (propertyData.reinforced_door) amenities.push('🚪 Reinforced Door');
+
+        if (amenities.length > 0) {
+            const amenitiesHtml = `
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                    <h4 style="color: #667eea; margin-bottom: 15px;">✨ Property Features</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        ${amenities.map(a => `<span style="background: #f0f2ff; padding: 8px 15px; border-radius: 20px; font-size: 0.9em;">${a}</span>`).join('')}
+                    </div>
+                </div>`;
+            document.getElementById('detailedMetrics').innerHTML += amenitiesHtml;
+        }
+
+        // Show results
+        document.getElementById('resultsContent').style.display = 'block';
+    }
 
     // File upload handling
     const uploadArea = document.getElementById('uploadArea');

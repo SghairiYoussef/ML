@@ -46,6 +46,23 @@ MODEL_REGISTRY = {
 
 DEFAULT_MODEL = 'xgboost_advanced'
 
+# Check if default model exists, otherwise fall back to best available
+def get_default_model():
+    """Get the default model, with fallback to available models"""
+    default_path = os.path.join(MODEL_DIR, MODEL_REGISTRY[DEFAULT_MODEL]['file'])
+    if os.path.exists(default_path):
+        return DEFAULT_MODEL
+
+    # Fallback priority list
+    fallback_order = ['xgboost_grid', 'xgboost_random', 'xgboost_bayesian', 'random_forest']
+    for model_key in fallback_order:
+        model_path = os.path.join(MODEL_DIR, MODEL_REGISTRY[model_key]['file'])
+        if os.path.exists(model_path):
+            print(f"⚠️  Default model '{DEFAULT_MODEL}' not found. Using '{model_key}' instead.")
+            return model_key
+
+    return DEFAULT_MODEL  # Return default anyway and let error handling deal with it
+
 os.makedirs(app.config['UPLOAD_FOLDER'],  exist_ok=True)
 os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
 os.makedirs(MODEL_DIR, exist_ok=True)
@@ -390,6 +407,108 @@ def make_prediction():
                 'model_metrics':          model_metrics
             }
         })
+    except Exception as e:
+        return jsonify({'error': f'Prediction error: {str(e)}\n{traceback.format_exc()}'}), 500
+
+
+@app.route('/predict_single', methods=['POST'])
+def predict_single():
+    """Predict price for a single property entered by the user"""
+    try:
+        property_data = request.get_json()
+
+        # Create DataFrame from single property
+        df = pd.DataFrame([property_data])
+
+        # Preprocess the data
+        processed_df, original_df, removed_rows, error = preprocess_for_prediction(df)
+
+        if error:
+            return jsonify({'error': f'Preprocessing error: {error}'}), 500
+
+        if len(processed_df) == 0:
+            return jsonify({'error': 'Property was filtered out during preprocessing. Please check the input values.'}), 400
+
+        # Use default model with fallback
+        model_key = get_default_model()
+        model_info = MODEL_REGISTRY[model_key]
+        model_path = os.path.join(MODEL_DIR, model_info['file'])
+
+        if not os.path.exists(model_path):
+            return jsonify({
+                'error': f'Model "{model_info["label"]}" has not been trained yet.',
+                'suggestion': 'Run train_advanced_model.py or train_all_models.py to train models.'
+            }), 404
+
+        # Load model
+        model = joblib.load(model_path)
+
+        # Apply scaling if available
+        scaler_path = os.path.join(MODEL_DIR, 'scaler_advanced.joblib')
+        scaling_cols_path = os.path.join(MODEL_DIR, 'scaling_columns_advanced.txt')
+        if not os.path.exists(scaler_path):
+            scaler_path = os.path.join(MODEL_DIR, 'scaler.joblib')
+            scaling_cols_path = os.path.join(MODEL_DIR, 'scaling_columns.txt')
+
+        if os.path.exists(scaler_path) and os.path.exists(scaling_cols_path):
+            scaler = joblib.load(scaler_path)
+            try:
+                with open(scaling_cols_path, 'r', encoding='utf-8') as f:
+                    scaling_cols = [l.strip() for l in f.readlines()]
+            except UnicodeDecodeError:
+                with open(scaling_cols_path, 'r', encoding='latin-1') as f:
+                    scaling_cols = [l.strip() for l in f.readlines()]
+
+            df_scaled = processed_df.copy()
+            existing_cols = [c for c in scaling_cols if c in df_scaled.columns]
+            if existing_cols:
+                df_scaled[existing_cols] = scaler.transform(df_scaled[existing_cols])
+            processed_df = df_scaled
+
+        # Align features with training data
+        feature_names_path = os.path.join(MODEL_DIR, 'feature_names_advanced.txt')
+        if not os.path.exists(feature_names_path):
+            feature_names_path = os.path.join(MODEL_DIR, 'feature_names.txt')
+
+        if os.path.exists(feature_names_path):
+            try:
+                with open(feature_names_path, 'r', encoding='utf-8') as f:
+                    training_features = [l.strip() for l in f.readlines()]
+            except UnicodeDecodeError:
+                with open(feature_names_path, 'r', encoding='latin-1') as f:
+                    training_features = [l.strip() for l in f.readlines()]
+
+            for col in training_features:
+                if col not in processed_df.columns:
+                    processed_df[col] = 0
+            processed_df = processed_df[training_features]
+
+        # Make prediction
+        if isinstance(model, dict) and 'xgb' in model and 'rf' in model:
+            w = model.get('weights', (0.6, 0.4))
+            prediction = w[0] * model['xgb'].predict(processed_df)[0] + w[1] * model['rf'].predict(processed_df)[0]
+        else:
+            prediction = model.predict(processed_df)[0]
+
+        # Get model metrics
+        metrics_path = os.path.join(MODEL_DIR, 'models_metrics.json')
+        model_metrics = None
+        if os.path.exists(metrics_path):
+            with open(metrics_path, 'r') as f:
+                all_m = json.load(f)
+            model_metrics = all_m.get(model_key)
+
+        return jsonify({
+            'success': True,
+            'message': f'Prediction completed using {model_info["label"]}',
+            'data': {
+                'predicted_price': float(prediction),
+                'model_used': model_info['label'],
+                'model_key': model_key,
+                'model_metrics': model_metrics
+            }
+        })
+
     except Exception as e:
         return jsonify({'error': f'Prediction error: {str(e)}\n{traceback.format_exc()}'}), 500
 
